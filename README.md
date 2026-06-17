@@ -48,5 +48,3 @@ flowchart TD
 - DynamoDB
 - SNS (email notifications)
 - S3 (static website hosting)
-
-## Project Structure
