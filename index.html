@@ -6,19 +6,20 @@
 <style>
   body {
     font-family: Arial, sans-serif;
-    background: #f4f6f8;
+    background: #232f3e;
     display: flex;
+    color: white;
     justify-content: center;
     padding: 50px;
   }
   .card {
-    background: white;
+    background: #31414f;
     padding: 30px;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
     width: 400px;
   }
-  h2 { color: #232f3e; }
+  h2 { color: #ff9900; }
   label { display: block; margin-top: 15px; font-weight: bold; }
   input, select, textarea {
     width: 100%;
@@ -31,7 +32,7 @@
   button {
     margin-top: 20px;
     background: #ff9900;
-    color: white;
+    color: rgb(255, 255, 255);
     border: none;
     padding: 10px 20px;
     border-radius: 5px;
@@ -83,7 +84,7 @@
 </div>
 
 <script>
-const API_URL = "https://c5ugvxuguf.execute-api.ap-southeast-1.amazonaws.com/prodHelpDesk/tickets";
+const API_URL = "https://ka6g52sns0.execute-api.ap-southeast-1.amazonaws.com/prodHelpDesk/tickets";
 
 document.getElementById("ticketForm").addEventListener("submit", async function(e) {
   e.preventDefault();

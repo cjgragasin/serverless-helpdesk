@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>IT Helpdesk - Admin Dashboard</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f6f8;
+    margin: 0;
+    padding: 30px;
+  }
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  h1 {
+    color: #232f3e;
+  }
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+  }
+  button {
+    background: #ff9900;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  button:hover { background: #e88b00; }
+  button.danger { background: #d9534f; }
+  button.danger:hover { background: #c9302c; }
+  button.small {
+    padding: 5px 10px;
+    font-size: 13px;
+    margin-right: 5px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+  }
+  th {
+    background: #232f3e;
+    color: white;
+  }
+  tr:hover { background: #f9f9f9; }
+  .status {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+  }
+  .status.OPEN { background: #d9534f; }
+  .status.IN_PROGRESS { background: #f0ad4e; }
+  .status.CLOSED { background: #5cb85c; }
+  select.status-select {
+    padding: 4px;
+    border-radius: 5px;
+  }
+  #loading, #empty {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+  }
+  .desc-cell {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="toolbar">
+    <h1>🎫 Helpdesk Admin Dashboard</h1>
+    <button onclick="loadTickets()">🔄 Refresh</button>
+  </div>
+
+  <div id="loading">Loading tickets...</div>
+  <div id="empty" style="display:none;">No tickets found.</div>
+
+  <table id="ticketsTable" style="display:none;">
+    <thead>
+      <tr>
+        <th>Ticket ID</th>
+        <th>Name</th>
+        <th>Email</th>
+        <th>Issue Type</th>
+        <th>Description</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="ticketsBody"></tbody>
+  </table>
+</div>
+
+<script>
+const API_URL = "https://ka6g52sns0.execute-api.ap-southeast-1.amazonaws.com/prodHelpDesk/tickets";
+
+async function loadTickets() {
+  document.getElementById("loading").style.display = "block";
+  document.getElementById("empty").style.display = "none";
+  document.getElementById("ticketsTable").style.display = "none";
+
+  try {
+    const res = await fetch(API_URL);
+    const tickets = await res.json();
+
+    document.getElementById("loading").style.display = "none";
+
+    if (!tickets.length) {
+      document.getElementById("empty").style.display = "block";
+      return;
+    }
+
+    const tbody = document.getElementById("ticketsBody");
+    tbody.innerHTML = "";
+
+    tickets.forEach(t => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${t.ticket_id}</td>
+        <td>${escapeHtml(t.name)}</td>
+        <td>${escapeHtml(t.email)}</td>
+        <td>${escapeHtml(t.issue_type)}</td>
+        <td class="desc-cell" title="${escapeHtml(t.description)}">${escapeHtml(t.description)}</td>
+        <td>
+          <select class="status-select" data-id="${t.ticket_id}" onchange="updateStatus('${t.ticket_id}', this.value)">
+            <option value="OPEN" ${t.status === 'OPEN' ? 'selected' : ''}>OPEN</option>
+            <option value="IN_PROGRESS" ${t.status === 'IN_PROGRESS' ? 'selected' : ''}>IN_PROGRESS</option>
+            <option value="CLOSED" ${t.status === 'CLOSED' ? 'selected' : ''}>CLOSED</option>
+          </select>
+        </td>
+        <td>${formatDate(t.created_at)}</td>
+        <td>
+          <button class="small danger" onclick="deleteTicket('${t.ticket_id}')">Delete</button>
+        </td>
+      `;
+      tbody.appendChild(row);
+    });
+
+    document.getElementById("ticketsTable").style.display = "table";
+  } catch (err) {
+    document.getElementById("loading").textContent = "❌ Failed to load tickets: " + err.message;
+  }
+}
+
+async function updateStatus(ticketId, newStatus) {
+  try {
+    await fetch(`${API_URL}/${ticketId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: newStatus })
+    });
+  } catch (err) {
+    alert("Failed to update status: " + err.message);
+    loadTickets();
+  }
+}
+
+async function deleteTicket(ticketId) {
+  if (!confirm(`Delete ticket ${ticketId}? This cannot be undone.`)) return;
+
+  try {
+    await fetch(`${API_URL}/${ticketId}`, { method: "DELETE" });
+    loadTickets();
+  } catch (err) {
+    alert("Failed to delete ticket: " + err.message);
+  }
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function formatDate(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  return d.toLocaleString();
+}
+
+loadTickets();
+</script>
+
+</body>
+</html>
